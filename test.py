@@ -78,5 +78,8 @@ while True:
         
 
     cv2.imshow("Image", imgOutput) #show your webcam
-    cv2.waitKey(1) #1 milisecond delay 
+    key = cv2.waitKey(1) #1 milisecond delay 
+    if key == 27:
+        break
+
 

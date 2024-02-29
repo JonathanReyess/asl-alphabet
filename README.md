@@ -15,6 +15,8 @@ pip install opencv-contrib-python
 
 Make sure you are running in the correct Python environment. If you encounter the error "opencv2 could not be resolved," execute the command above to resolve it.
 
+There is currently no training data for the letters "J" or "Z" as their signs require motion. 
+
 ## Dependencies
 
 ASL-Alphabet relies on the following dependencies:
