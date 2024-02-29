@@ -11,6 +11,7 @@ pip install cvzone
 pip install mediapipe
 pip install opencv-python opencv-python-headless
 pip install opencv-contrib-python
+pip install tensorflow 
 ```
 
 Make sure you are running in the correct Python environment. If you encounter the error "opencv2 could not be resolved," execute the command above to resolve it.
@@ -24,7 +25,7 @@ ASL-Alphabet relies on the following dependencies:
 ### cvzone-1.6.1
 ### numpy-1.26.3
 ### opencv-python-4.9.0.80
-
+### tensorflow-2.15.0
 ### mediapipe-0.10.9
 ### opencv-contrib-python-4.9.0.80
 
