@@ -2,8 +2,7 @@
 Step 2: Simple Data Collection for ASL Letters
 ==============================================
 
-This script helps you collect training images for each ASL letter using your webcam.
-We'll collect images one letter at a time.
+This script helps collect training images for each ASL letter using a webcam one letter at a time.
 """
 
 import cv2
@@ -16,9 +15,9 @@ class ASLDataCollector:
     Simple data collector for ASL letters
     
     What this does:
-    - Opens your webcam
-    - Shows a region where you should place your hand
-    - Captures images when you press spacebar
+    - Opens webcam
+    - Shows a region where hand should be placed
+    - Captures images when spacebar is pressed
     - Saves images organized by letter
     """
     

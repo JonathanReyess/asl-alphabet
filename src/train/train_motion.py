@@ -1,391 +1,330 @@
-"""
-Step 6: Train the Motion Model for J and Z
-==========================================
-
-This script trains the LSTM model on your collected motion sequences.
-It will learn to distinguish between J (hook motion) and Z (tracing motion).
-"""
-
+# Complete Motion Model Training Script with Evaluation and Logging
 import numpy as np
 import tensorflow as tf
 from pathlib import Path
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import classification_report, confusion_matrix
 import matplotlib.pyplot as plt
 import json
+from datetime import datetime
 
-# Import our motion model
-from motion_model import MotionASLModel
+def create_motion_model(sequence_length=20, num_features=63):
+    """Create LSTM model for motion recognition"""
+    model = tf.keras.Sequential([
+        tf.keras.layers.LSTM(128, return_sequences=True, input_shape=(sequence_length, num_features)),
+        tf.keras.layers.Dropout(0.3),
+        tf.keras.layers.LSTM(64, return_sequences=False),
+        tf.keras.layers.Dropout(0.3),
+        tf.keras.layers.Dense(32, activation='relu'),
+        tf.keras.layers.Dropout(0.2),
+        tf.keras.layers.Dense(2, activation='softmax')  # J and Z
+    ])
+    
+    model.compile(
+        optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
+        loss='categorical_crossentropy',
+        metrics=['accuracy']
+    )
+    
+    return model
 
-class MotionTrainer:
-    """
-    Trainer for the motion-based ASL model
+def load_motion_data():
+    """Load motion sequences from data directory"""
+    data_dir = Path("data/motion")
+    letters = ['J', 'Z']
     
-    What this does:
-    - Loads your collected motion sequences
-    - Preprocesses the landmark data
-    - Trains the LSTM model
-    - Evaluates performance
-    """
+    sequences = []
+    labels = []
     
-    def __init__(self, data_dir="data/motion"):
-        self.data_dir = Path(data_dir)
-        self.model_trainer = MotionASLModel(sequence_length=20)
-        self.X_train = None
-        self.X_test = None
-        self.y_train = None
-        self.y_test = None
-        
-    def load_motion_data(self):
-        """
-        Load motion sequences from the data directory
-        
-        Returns:
-            X: Array of motion sequences
-            y: Array of labels (J or Z)
-        """
-        
-        print("Loading motion sequences...")
-        
-        sequences = []
-        labels = []
-        
-        for letter in ['J', 'Z']:
-            letter_dir = self.data_dir / letter
-            
-            if not letter_dir.exists():
-                print(f"⚠️  No data found for letter {letter}")
-                continue
-            
-            # Get all .npy files for this letter
-            sequence_files = list(letter_dir.glob("*.npy"))
-            print(f"Found {len(sequence_files)} sequences for letter {letter}")
-            
-            for seq_path in sequence_files:
-                try:
-                    # Load the sequence
-                    sequence = np.load(str(seq_path))
-                    
-                    # Check if sequence has the right shape
-                    if sequence.shape[0] >= 20 and sequence.shape[1] == 63:
-                        # Take first 20 frames and ensure 63 landmarks
-                        sequence = sequence[:20, :63]
-                        sequences.append(sequence)
-                        labels.append(letter)
-                    else:
-                        print(f"Skipping {seq_path}: wrong shape {sequence.shape}")
-                        
-                except Exception as e:
-                    print(f"Error loading {seq_path}: {e}")
-        
-        print(f" Loaded {len(sequences)} total sequences")
-        print(f"Motion data distribution:")
-        for letter in ['J', 'Z']:
-            count = labels.count(letter)
-            print(f"   {letter}: {count} sequences")
-        
-        return np.array(sequences), np.array(labels)
+    print("Loading motion sequences...")
     
-    def preprocess_sequences(self, sequences):
-        """
-        Preprocess motion sequences for training
+    for letter in letters:
+        letter_dir = data_dir / letter
         
-        Args:
-            sequences: Raw motion sequences
+        if not letter_dir.exists():
+            print(f"No data found for letter {letter}")
+            continue
         
-        Returns:
-            preprocessed_sequences: Normalized and cleaned sequences
-        """
+        sequence_files = list(letter_dir.glob("*.npy"))
+        print(f"{letter}: {len(sequence_files)} sequences")
         
-        print("Preprocessing motion sequences...")
-        
-        # Handle missing landmarks (replace with interpolation)
-        processed_sequences = []
-        
-        for seq in sequences:
-            processed_seq = seq.copy()
-            
-            # Replace zero landmarks with interpolation
-            for frame_idx in range(len(processed_seq)):
-                frame = processed_seq[frame_idx]
+        for seq_path in sequence_files:
+            try:
+                sequence = np.load(str(seq_path))
                 
-                # Check if frame has all zeros (missing landmarks)
-                if np.all(frame == 0) and frame_idx > 0:
-                    # Use previous frame's landmarks
-                    processed_seq[frame_idx] = processed_seq[frame_idx - 1]
-            
-            # Normalize landmarks to reduce variation
-            # Subtract wrist position (first landmark) to make relative
-            wrist_pos = processed_seq[:, :3]  # First landmark (wrist) x,y,z
-            
-            for i in range(0, 63, 3):  # Every landmark (x,y,z)
-                processed_seq[:, i:i+3] = processed_seq[:, i:i+3] - wrist_pos
-            
-            processed_sequences.append(processed_seq)
-        
-        return np.array(processed_sequences)
+                if sequence.shape[0] >= 20 and sequence.shape[1] == 63:
+                    sequence = sequence[:20, :63]
+                    sequences.append(sequence)
+                    labels.append(letter)
+                else:
+                    print(f"Skipping {seq_path}: wrong shape {sequence.shape}")
+                    
+            except Exception as e:
+                print(f"Error loading {seq_path}: {e}")
     
-    def prepare_data(self):
-        """
-        Load and prepare data for training
-        """
-        
-        print("Preparing motion training data...")
-        
-        # Load sequences and labels
-        X, y = self.load_motion_data()
-        
-        if len(X) == 0:
-            print("No motion data loaded! Collect sequences first.")
-            return False
-        
-        # Preprocess sequences
-        X_processed = self.preprocess_sequences(X)
-        
-        # Convert string labels to numbers (J=0, Z=1)
-        label_encoder = LabelEncoder()
-        y_encoded = label_encoder.fit_transform(y)
-        
-        # Convert to one-hot encoding
-        y_categorical = tf.keras.utils.to_categorical(y_encoded, num_classes=2)
-        
-        # Split into training and testing sets
-        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
-            X_processed, y_categorical,
-            test_size=0.2,
-            random_state=42,
-            stratify=y_encoded
-        )
-        
-        print(f"Motion data prepared!")
-        print(f"Training sequences: {len(self.X_train)}")
-        print(f"Test sequences: {len(self.X_test)}")
-        print(f"Sequence shape: {self.X_train.shape}")
-        
-        return True
+    print(f"Loaded {len(sequences)} total sequences")
+    for letter in letters:
+        count = labels.count(letter)
+        print(f"   {letter}: {count} sequences")
     
-    def train_model(self, epochs=50, batch_size=8):
-        """
-        Train the motion model
+    return np.array(sequences), np.array(labels), letters
+
+def preprocess_sequences(sequences):
+    """Preprocess motion sequences for training"""
+    print("Preprocessing motion sequences...")
+    
+    processed_sequences = []
+    
+    for seq in sequences:
+        processed_seq = seq.copy()
         
-        Args:
-            epochs: Number of training epochs
-            batch_size: Batch size for training
-        """
+        # Handle missing landmarks
+        for frame_idx in range(len(processed_seq)):
+            frame = processed_seq[frame_idx]
+            
+            if np.all(frame == 0) and frame_idx > 0:
+                processed_seq[frame_idx] = processed_seq[frame_idx - 1]
         
-        if self.X_train is None:
-            print("Prepare data first!")
-            return
+        # Normalize relative to wrist position
+        wrist_pos = processed_seq[:, :3]
         
-        print(f"Starting motion model training...")
-        print(f"Epochs: {epochs}")
-        print(f"Batch size: {batch_size}")
+        for i in range(0, 63, 3):
+            processed_seq[:, i:i+3] = processed_seq[:, i:i+3] - wrist_pos
         
-        # Build and compile the model
-        model = self.model_trainer.build_model()
-        self.model_trainer.compile_model(learning_rate=0.001)
+        processed_sequences.append(processed_seq)
+    
+    return np.array(processed_sequences)
+
+def comprehensive_motion_evaluation(model, X_test, y_test, letters, history):
+    """Evaluate motion model and save detailed results"""
+    
+    # Make predictions
+    predictions = model.predict(X_test, verbose=0)
+    pred_labels = np.argmax(predictions, axis=1)
+    true_labels = np.argmax(y_test, axis=1)
+    
+    # Calculate overall accuracy
+    accuracy = np.mean(pred_labels == true_labels)
+    
+    # Get detailed classification report
+    report = classification_report(true_labels, pred_labels, 
+                                 target_names=letters, 
+                                 output_dict=True)
+    
+    # Confusion matrix
+    cm = confusion_matrix(true_labels, pred_labels)
+    
+    # Per-class accuracy
+    per_class_accuracy = {}
+    for i, letter in enumerate(letters):
+        mask = true_labels == i
+        if np.sum(mask) > 0:
+            class_accuracy = np.mean(pred_labels[mask] == true_labels[mask])
+            per_class_accuracy[letter] = float(class_accuracy)
+    
+    # Training history metrics
+    final_train_acc = float(history.history['accuracy'][-1])
+    final_val_acc = float(history.history['val_accuracy'][-1])
+    final_train_loss = float(history.history['loss'][-1])
+    final_val_loss = float(history.history['val_loss'][-1])
+    
+    # Create comprehensive report
+    evaluation_report = {
+        "evaluation_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "model_architecture": "Motion LSTM",
+        "total_parameters": int(model.count_params()),
+        "training_epochs": len(history.history['accuracy']),
+        "sequence_length": 20,
+        "features_per_frame": 63,
         
-        # Add callbacks for better training
-        callbacks = [
-            tf.keras.callbacks.EarlyStopping(
-                monitor='val_accuracy',
-                patience=15,
-                restore_best_weights=True,
-                verbose=1
-            ),
-            tf.keras.callbacks.ReduceLROnPlateau(
-                monitor='val_loss',
-                factor=0.5,
-                patience=8,
-                min_lr=1e-6,
-                verbose=1
-            )
-        ]
+        "overall_performance": {
+            "test_accuracy": float(accuracy),
+            "final_training_accuracy": final_train_acc,
+            "final_validation_accuracy": final_val_acc,
+            "final_training_loss": final_train_loss,
+            "final_validation_loss": final_val_loss
+        },
         
-        # Train the model
-        print("Training motion model...")
-        history = model.fit(
-            self.X_train, self.y_train,
-            epochs=epochs,
-            batch_size=batch_size,
-            validation_data=(self.X_test, self.y_test),
-            callbacks=callbacks,
+        "per_class_performance": per_class_accuracy,
+        
+        "classification_metrics": {
+            "precision_macro": float(report['macro avg']['precision']),
+            "recall_macro": float(report['macro avg']['recall']),
+            "f1_macro": float(report['macro avg']['f1-score']),
+            "precision_weighted": float(report['weighted avg']['precision']),
+            "recall_weighted": float(report['weighted avg']['recall']),
+            "f1_weighted": float(report['weighted avg']['f1-score'])
+        },
+        
+        "detailed_classification_report": {
+            letter: {
+                "precision": float(report[letter]['precision']),
+                "recall": float(report[letter]['recall']),
+                "f1_score": float(report[letter]['f1-score']),
+                "support": int(report[letter]['support'])
+            }
+            for letter in letters
+        },
+        
+        "confusion_matrix": cm.tolist()
+    }
+    
+    # Save evaluation report
+    import os
+    os.makedirs('logs', exist_ok=True)
+    with open('logs/motion_evaluation_report.json', 'w') as f:
+        json.dump(evaluation_report, f, indent=2)
+    
+    print(f"Motion evaluation complete! Overall accuracy: {accuracy:.2%}")
+    print(f"Report saved to logs/motion_evaluation_report.json")
+    
+    return evaluation_report
+
+def save_motion_training_history(history):
+    """Save motion training history plot"""
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))
+    
+    # Plot accuracy
+    ax1.plot(history.history['accuracy'], label='Training Accuracy', color='blue')
+    ax1.plot(history.history['val_accuracy'], label='Validation Accuracy', color='orange')
+    ax1.set_title('Motion Model Accuracy')
+    ax1.set_xlabel('Epoch')
+    ax1.set_ylabel('Accuracy')
+    ax1.legend()
+    ax1.grid(True)
+    
+    # Plot loss
+    ax2.plot(history.history['loss'], label='Training Loss', color='blue')
+    ax2.plot(history.history['val_loss'], label='Validation Loss', color='orange')
+    ax2.set_title('Motion Model Loss')
+    ax2.set_xlabel('Epoch')
+    ax2.set_ylabel('Loss')
+    ax2.legend()
+    ax2.grid(True)
+    
+    plt.tight_layout()
+    plt.savefig('logs/motion_training_history.png', dpi=150, bbox_inches='tight')
+    plt.show()
+    
+    print("Motion training history saved to logs/motion_training_history.png")
+
+def test_motion_predictions(model, X_test, y_test, letters, num_samples=6):
+    """Test motion model predictions"""
+    if len(X_test) == 0:
+        print("No test data available!")
+        return
+    
+    print(f"Testing motion model on {num_samples} random sequences...")
+    
+    indices = np.random.choice(len(X_test), min(num_samples, len(X_test)), replace=False)
+    
+    for i, idx in enumerate(indices):
+        sequence = X_test[idx:idx+1]
+        true_label_idx = np.argmax(y_test[idx])
+        true_label = letters[true_label_idx]
+        
+        prediction = model.predict(sequence, verbose=0)
+        predicted_idx = np.argmax(prediction[0])
+        predicted_label = letters[predicted_idx]
+        confidence = prediction[0][predicted_idx]
+        
+        status = "✓" if predicted_label == true_label else "✗"
+        print(f"{status} Sequence {i+1}: True={true_label}, Predicted={predicted_label}, Confidence={confidence:.2%}")
+
+def train_motion_model():
+    """Train the motion model with comprehensive evaluation"""
+    print("Loading motion data...")
+    X, y, letters = load_motion_data()
+    
+    if len(X) == 0:
+        print("No motion data found! Make sure data/motion/J and data/motion/Z exist with .npy files.")
+        return
+    
+    # Preprocess sequences
+    X_processed = preprocess_sequences(X)
+    
+    # Encode labels
+    label_encoder = LabelEncoder()
+    y_encoded = label_encoder.fit_transform(y)
+    y_categorical = tf.keras.utils.to_categorical(y_encoded, num_classes=2)
+    
+    # Split data
+    X_train, X_test, y_train, y_test = train_test_split(
+        X_processed, y_categorical, test_size=0.2, random_state=42, stratify=y_encoded
+    )
+    
+    print(f"Training sequences: {len(X_train)}")
+    print(f"Test sequences: {len(X_test)}")
+    print(f"Sequence shape: {X_train.shape}")
+    
+    # Create and train model
+    model = create_motion_model()
+    model.summary()
+    
+    # Callbacks
+    callbacks = [
+        tf.keras.callbacks.EarlyStopping(
+            monitor='val_accuracy',
+            patience=15,
+            restore_best_weights=True,
+            verbose=1
+        ),
+        tf.keras.callbacks.ReduceLROnPlateau(
+            monitor='val_loss',
+            factor=0.5,
+            patience=8,
+            min_lr=1e-6,
             verbose=1
         )
-        
-        print("Motion training completed!")
-        
-        # Evaluate the model
-        test_loss, test_accuracy = model.evaluate(self.X_test, self.y_test, verbose=0)
-        print(f"Final test accuracy: {test_accuracy:.2%}")
-        
-        # Save the model
-        models_dir = Path("models")
-        models_dir.mkdir(exist_ok=True)
-        model_path = models_dir / "motion_model.keras"  # Change extension
-        model.save(str(model_path))
-        print(f" Motion model saved to: {model_path}")
-        
-        # Save training info
-        training_info = {
-            'test_accuracy': float(test_accuracy),
-            'test_loss': float(test_loss),
-            'epochs_trained': len(history.history['accuracy']),
-            'final_train_accuracy': float(history.history['accuracy'][-1]),
-            'final_val_accuracy': float(history.history['val_accuracy'][-1])
-        }
-        
-        with open('logs/motion_training_info.json', 'w') as f:
-            json.dump(training_info, f, indent=2)
-        
-        # Plot training history
-        self.plot_training_history(history)
-        
-        # Test some predictions
-        self.test_motion_predictions()
-        
-        return model, history
+    ]
     
-    def plot_training_history(self, history):
-        """
-        Plot motion model training history
-        """
-        
-        print("Creating motion training plots...")
-        
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))
-        
-        # Plot accuracy
-        ax1.plot(history.history['accuracy'], label='Training Accuracy')
-        ax1.plot(history.history['val_accuracy'], label='Validation Accuracy')
-        ax1.set_title('Motion Model Accuracy')
-        ax1.set_xlabel('Epoch')
-        ax1.set_ylabel('Accuracy')
-        ax1.legend()
-        ax1.grid(True)
-        
-        # Plot loss
-        ax2.plot(history.history['loss'], label='Training Loss')
-        ax2.plot(history.history['val_loss'], label='Validation Loss')
-        ax2.set_title('Motion Model Loss')
-        ax2.set_xlabel('Epoch')
-        ax2.set_ylabel('Loss')
-        ax2.legend()
-        ax2.grid(True)
-        
-        # Save plot
-        logs_dir = Path("logs")
-        logs_dir.mkdir(exist_ok=True)
-        plot_path = logs_dir / "motion_training_history.png"
-        plt.savefig(str(plot_path))
-        print(f"Motion training plots saved to: {plot_path}")
-        
-        plt.tight_layout()
-        plt.show()
+    # Train
+    history = model.fit(
+        X_train, y_train,
+        epochs=50,
+        batch_size=8,
+        validation_data=(X_test, y_test),
+        callbacks=callbacks,
+        verbose=1
+    )
     
-    def test_motion_predictions(self, num_samples=6):
-        """
-        Test the motion model on random sequences
-        """
-        
-        if self.X_test is None:
-            print("No test data available!")
-            return
-        
-        print(f"Testing motion model on {num_samples} random sequences...")
-        
-        # Load the trained model
-        model = tf.keras.models.load_model("models/motion_model.keras")
-        
-        # Get random samples
-        indices = np.random.choice(len(self.X_test), min(num_samples, len(self.X_test)), replace=False)
-        
-        for i, idx in enumerate(indices):
-            # Get sequence and true label
-            sequence = self.X_test[idx:idx+1]  # Add batch dimension
-            true_label_idx = np.argmax(self.y_test[idx])
-            true_label = self.model_trainer.index_to_letter[true_label_idx]
-            
-            # Make prediction
-            prediction = model.predict(sequence, verbose=0)
-            predicted_idx = np.argmax(prediction[0])
-            predicted_label = self.model_trainer.index_to_letter[predicted_idx]
-            confidence = prediction[0][predicted_idx]
-            
-            # Show result
-            status = "Good" if predicted_label == true_label else "Bad"
-            print(f"{status} Sequence {i+1}: True={true_label}, Predicted={predicted_label}, Confidence={confidence:.2%}")
+    # Evaluate
+    test_loss, test_accuracy = model.evaluate(X_test, y_test)
+    print(f"Final test accuracy: {test_accuracy:.2%}")
+    
+    # Save model
+    import os
+    os.makedirs('models', exist_ok=True)
+    model.save('models/motion_model.keras')
+    print("Motion model saved!")
+    
+    # Comprehensive evaluation and logging
+    print("\nRunning comprehensive evaluation...")
+    evaluation_results = comprehensive_motion_evaluation(model, X_test, y_test, letters, history)
+    save_motion_training_history(history)
+    
+    # Test predictions
+    print("\nTesting predictions...")
+    test_motion_predictions(model, X_test, y_test, letters)
+    
+    # Download files if in Colab
+    try:
+        from google.colab import files
+        print("\nDownloading results...")
+        files.download('models/motion_model.keras')
+        files.download('logs/motion_evaluation_report.json')
+        files.download('logs/motion_training_history.png')
+    except:
+        print("Files saved locally (not in Colab environment)")
+    
+    return model, history, evaluation_results
 
-def check_motion_data():
-    """
-    Check if we have enough motion data to train
-    """
-    
-    data_dir = Path("data/motion")
-    
-    if not data_dir.exists():
-        print(" No motion data directory found!")
-        print(" Run: python src/motion_model.py")
-        print(" Then collect data for J and Z")
-        return False
-    
-    total_sequences = 0
-    for letter in ['J', 'Z']:
-        letter_dir = data_dir / letter
-        if letter_dir.exists():
-            count = len(list(letter_dir.glob("*.npy")))
-            total_sequences += count
-            print(f"Letter {letter}: {count} sequences")
-        else:
-            print(f"No data for letter {letter}")
-    
-    if total_sequences < 20:
-        print("Not enough motion data! Need at least 20 sequences total.")
-        print("Collect more data using: python src/motion_model.py")
-        return False
-    
-    print(f" Found {total_sequences} motion sequences total")
-    return True
-
-def main():
-    """
-    Main training function for motion model
-    """
-    
-    print(" Motion Model Training")
+# Run the complete motion training pipeline
+if __name__ == "__main__":
+    print("Motion Model Training")
     print("=" * 40)
     print("Training LSTM to recognize J and Z motions!")
     
-    # Check if we have motion data
-    if not check_motion_data():
-        return
-    
-    # Create trainer
-    trainer = MotionTrainer()
-    
-    # Prepare data
-    print("\n" + "=" * 40)
-    print(" Loading and Preprocessing Data")
-    print("=" * 40)
-    
-    if not trainer.prepare_data():
-        return
-    
-    # Train the model
-    print("\n" + "=" * 40)
-    print(" Training Motion Model")
-    print("=" * 40)
-    
-    epochs = int(input("Number of epochs (default 50): ") or "50")
-    batch_size = int(input("Batch size (default 8): ") or "8")
-    
-    model, history = trainer.train_model(epochs=epochs, batch_size=batch_size)
-    
-    print("\n" + "=" * 40)
-    print(" Motion Training Complete!")
-    print("=" * 40)
-    print("Your motion model can now recognize J and Z!")
-    print("Next: Create a combined system for all letters A-Z!")
-
-if __name__ == "__main__":
-    main()
+    model, history, results = train_motion_model()
+    print("\nMotion training and evaluation complete!")

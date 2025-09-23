@@ -1,0 +1,51 @@
+{
+  "evaluation_date": "2025-09-23 22:39:34",
+  "model_architecture": "Motion LSTM",
+  "total_parameters": 149858,
+  "training_epochs": 19,
+  "sequence_length": 20,
+  "features_per_frame": 63,
+  "overall_performance": {
+    "test_accuracy": 1.0,
+    "final_training_accuracy": 1.0,
+    "final_validation_accuracy": 1.0,
+    "final_training_loss": 0.026578644290566444,
+    "final_validation_loss": 0.006350059062242508
+  },
+  "per_class_performance": {
+    "J": 1.0,
+    "Z": 1.0
+  },
+  "classification_metrics": {
+    "precision_macro": 1.0,
+    "recall_macro": 1.0,
+    "f1_macro": 1.0,
+    "precision_weighted": 1.0,
+    "recall_weighted": 1.0,
+    "f1_weighted": 1.0
+  },
+  "detailed_classification_report": {
+    "J": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1_score": 1.0,
+      "support": 6
+    },
+    "Z": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1_score": 1.0,
+      "support": 6
+    }
+  },
+  "confusion_matrix": [
+    [
+      6,
+      0
+    ],
+    [
+      0,
+      6
+    ]
+  ]
+}

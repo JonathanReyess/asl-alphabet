@@ -2,7 +2,7 @@
 Simple Parameter Check for ASL Models
 ====================================
 
-Quick and reliable parameter counting for your models
+Quick and reliable parameter counting for the models
 """
 
 import os
