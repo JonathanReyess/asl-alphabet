@@ -18,6 +18,21 @@ import matplotlib.pyplot as plt
 # Import our model
 from asl_model import SimpleASLModel
 
+from tensorflow.keras import mixed_precision # type: ignore
+
+# Force float32 (avoid buggy float16 on Metal)
+mixed_precision.set_global_policy("float32")
+
+# Allow dynamic GPU memory growth
+gpus = tf.config.list_physical_devices('GPU')
+for gpu in gpus:
+    try:
+        tf.config.experimental.set_memory_growth(gpu, True)
+    except:
+        pass
+
+print("Devices:", gpus)
+
 class ASLTrainer:
     """
     Simple trainer for the ASL model
@@ -45,7 +60,7 @@ class ASLTrainer:
             letters: List of letters to include in training
         """
         
-        print(f"📂 Loading data for letters: {letters}")
+        print(f"Loading data for letters: {letters}")
         
         images = []
         labels = []
@@ -77,8 +92,8 @@ class ASLTrainer:
                     images.append(img)
                     labels.append(letter)
         
-        print(f"✅ Loaded {len(images)} total images")
-        print(f"📊 Letters distribution:")
+        print(f"Loaded {len(images)} total images")
+        print(f"Letters distribution:")
         for letter in letters:
             count = labels.count(letter)
             print(f"   {letter}: {count} images")
@@ -90,13 +105,13 @@ class ASLTrainer:
         Load and prepare data for training
         """
         
-        print("🔄 Preparing training data...")
+        print("Preparing training data...")
         
         # Load images and labels
         X, y = self.load_data(letters)
         
         if len(X) == 0:
-            print("❌ No data loaded! Make sure you collected images first.")
+            print(" No data loaded! Make sure you collected images first.")
             return False
         
         # Convert letters to numbers (A=0, B=1, C=2, D=3)
@@ -120,9 +135,9 @@ class ASLTrainer:
             stratify=y_encoded  # Keep same proportion of each letter in train/test
         )
         
-        print(f"✅ Data prepared!")
-        print(f"📊 Training set: {len(self.X_train)} images")
-        print(f"📊 Test set: {len(self.X_test)} images")
+        print(f"Data prepared!")
+        print(f"Training set: {len(self.X_train)} images")
+        print(f"Test set: {len(self.X_test)} images")
         
         return True
     
@@ -136,19 +151,19 @@ class ASLTrainer:
         """
         
         if self.X_train is None:
-            print("❌ Prepare data first!")
+            print("Prepare data first!")
             return
         
-        print(f"🚀 Starting training...")
-        print(f"📊 Epochs: {epochs}")
-        print(f"📊 Batch size: {batch_size}")
+        print(f"Starting training...")
+        print(f"Epochs: {epochs}")
+        print(f"Batch size: {batch_size}")
         
         # Build and compile the model for our specific number of letters
         model = self.model_trainer.build_model()
         self.model_trainer.compile_model(learning_rate=0.001)
         
         # Train the model
-        print("🔥 Training in progress...")
+        print("Training in progress...")
         history = model.fit(
             self.X_train, self.y_train,
             epochs=epochs,
@@ -157,18 +172,18 @@ class ASLTrainer:
             verbose=1  # Show progress
         )
         
-        print("✅ Training completed!")
+        print("Training completed!")
         
         # Evaluate the model
         test_loss, test_accuracy = model.evaluate(self.X_test, self.y_test, verbose=0)
-        print(f"📊 Final test accuracy: {test_accuracy:.2%}")
+        print(f"Final test accuracy: {test_accuracy:.2%}")
         
         # Save the model
         models_dir = Path("models")
         models_dir.mkdir(exist_ok=True)
-        model_path = models_dir / "asl_model_simple.h5"
+        model_path = models_dir / "asl_model_simple.keras"
         model.save(str(model_path))
-        print(f"💾 Model saved to: {model_path}")
+        print(f"Model saved to: {model_path}")
         
         # Plot training history
         self.plot_training_history(history)
@@ -180,7 +195,7 @@ class ASLTrainer:
         Create plots showing how training went
         """
         
-        print("📊 Creating training plots...")
+        print("Creating training plots...")
         
         # Create plots
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))
@@ -208,7 +223,7 @@ class ASLTrainer:
         logs_dir.mkdir(exist_ok=True)
         plot_path = logs_dir / "training_history.png"
         plt.savefig(str(plot_path))
-        print(f"📊 Training plots saved to: {plot_path}")
+        print(f"Training plots saved to: {plot_path}")
         
         # Show the plot
         plt.tight_layout()
@@ -220,16 +235,16 @@ class ASLTrainer:
         """
         
         if self.X_test is None:
-            print("❌ No test data available!")
+            print("No test data available!")
             return
         
-        print(f"🧪 Testing model on {num_samples} random images...")
+        print(f"Testing model on {num_samples} random images...")
         
         # Get random samples from test set
         indices = np.random.choice(len(self.X_test), num_samples, replace=False)
         
         # Make predictions
-        model = tf.keras.models.load_model("models/asl_model_simple.h5")
+        model = tf.keras.models.load_model("models/asl_model_simple.keras")
         
         for i, idx in enumerate(indices):
             # Get image and true label
@@ -244,7 +259,7 @@ class ASLTrainer:
             confidence = prediction[0][predicted_idx]
             
             # Show result
-            status = "✅" if predicted_label == true_label else "❌"
+            status = "Good" if predicted_label == true_label else "Bad"
             print(f"{status} Image {i+1}: True={true_label}, Predicted={predicted_label}, Confidence={confidence:.2%}")
 
 
@@ -253,16 +268,21 @@ def main():
     Main training function
     """
     
-    print("🚀 ASL Model Training")
+    print("ASL Model Training")
     print("=" * 40)
     
     # Create trainer
     trainer = ASLTrainer()
     
     # Which letters to train on (you can add more as you collect data)
-    letters_to_train = ['A', 'B', 'C', 'D']
+    letters_to_train = [
+    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 
+    'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 
+    'T', 'U', 'V', 'W', 'X', 'Y'
+]
+
     
-    print(f"🎯 Training model to recognize: {letters_to_train}")
+    print(f"Training model to recognize: {letters_to_train}")
     
     # Check if we have data
     total_images = 0
@@ -276,8 +296,8 @@ def main():
             print(f"⚠️  No data found for letter {letter}")
     
     if total_images < 50:
-        print("❌ Not enough data! Collect more images first.")
-        print("💡 Run: python src/collect_data.py")
+        print("Not enough data! Collect more images first.")
+        print("Run: python src/collect_data.py")
         return
     
     # Prepare data
@@ -286,20 +306,20 @@ def main():
     
     # Train the model
     print("\n" + "=" * 40)
-    print("🔥 Starting Training!")
+    print("Starting Training!")
     print("=" * 40)
     
     model, history = trainer.train_model(epochs=20, batch_size=16)
     
     # Test some predictions
     print("\n" + "=" * 40)
-    print("🧪 Testing Predictions")
+    print("Testing Predictions")
     print("=" * 40)
     
     trainer.test_predictions(num_samples=8)
     
-    print("\n🎉 Training complete!")
-    print("💡 Next: Test your model with real-time camera input!")
+    print("\nTraining complete!")
+    print(" Next: Test your model with real-time camera input!")
 
 
 if __name__ == "__main__":

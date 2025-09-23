@@ -37,7 +37,7 @@ class ASLDataCollector:
             letter_dir = self.data_dir / letter
             letter_dir.mkdir(parents=True, exist_ok=True)
         
-        print(f"✅ Created directories in {self.data_dir}")
+        print(f"Created directories in {self.data_dir}")
     
     def collect_letter_data(self, letter, target_images=100):
         """
@@ -49,13 +49,13 @@ class ASLDataCollector:
         """
         
         if letter not in self.letters:
-            print(f"❌ Letter {letter} not in our list!")
+            print(f"Letter {letter} not in our list!")
             return
         
         # Setup camera
         cap = cv2.VideoCapture(0)
         if not cap.isOpened():
-            print("❌ Could not open camera!")
+            print("Could not open camera!")
             return
         
         # Set camera properties for better quality
@@ -65,10 +65,10 @@ class ASLDataCollector:
         letter_dir = self.data_dir / letter
         existing_images = len(list(letter_dir.glob("*.jpg")))
         
-        print(f"\n🎯 Collecting data for letter: {letter}")
-        print(f"📊 Existing images: {existing_images}")
-        print(f"🎯 Target: {target_images} total images")
-        print(f"📸 Need to capture: {max(0, target_images - existing_images)} more")
+        print(f"\nCollecting data for letter: {letter}")
+        print(f"Existing images: {existing_images}")
+        print(f"Target: {target_images} total images")
+        print(f"Need to capture: {max(0, target_images - existing_images)} more")
         print("\nInstructions:")
         print("- Position your hand in the blue rectangle")
         print("- Make the letter sign clearly")
@@ -81,7 +81,7 @@ class ASLDataCollector:
         while count < target_images:
             ret, frame = cap.read()
             if not ret:
-                print("❌ Failed to read from camera")
+                print("Failed to read from camera")
                 break
             
             # Flip frame horizontally for mirror effect (more natural)
@@ -131,18 +131,18 @@ class ASLDataCollector:
                 cv2.waitKey(200)
                 
             elif key == ord('q'):  # Quit
-                print("🛑 Quitting data collection")
+                print("Quitting data collection")
                 break
                 
             elif key == ord('n'):  # Next letter
-                print(f"⏭️  Moving to next letter (collected {count} images for {letter})")
+                print(f"Moving to next letter (collected {count} images for {letter})")
                 break
         
         cap.release()
         cv2.destroyAllWindows()
         
-        print(f"✅ Finished collecting data for letter {letter}")
-        print(f"📊 Total images collected: {count}")
+        print(f"Finished collecting data for letter {letter}")
+        print(f"Total images collected: {count}")
     
     def collect_all_letters(self, images_per_letter=100):
         """
@@ -152,24 +152,24 @@ class ASLDataCollector:
             images_per_letter: How many images to collect for each letter
         """
         
-        print("🚀 Starting data collection for ALL letters!")
-        print(f"📊 Target: {images_per_letter} images per letter")
-        print(f"📊 Total images to collect: {len(self.letters) * images_per_letter}")
+        print("Starting data collection for ALL letters!")
+        print(f"Target: {images_per_letter} images per letter")
+        print(f"Total images to collect: {len(self.letters) * images_per_letter}")
         
         for i, letter in enumerate(self.letters):
             print(f"\n{'='*50}")
-            print(f"📝 Letter {i+1}/{len(self.letters)}: {letter}")
+            print(f"Letter {i+1}/{len(self.letters)}: {letter}")
             print(f"{'='*50}")
             
-            input(f"🤚 Get ready to show letter '{letter}' and press Enter...")
+            input(f"Get ready to show letter '{letter}' and press Enter...")
             
             self.collect_letter_data(letter, images_per_letter)
             
             if i < len(self.letters) - 1:  # Not the last letter
-                print(f"\n✅ Completed letter {letter}!")
+                print(f"\nCompleted letter {letter}!")
                 choice = input("Continue to next letter? (y/n): ").lower()
                 if choice != 'y':
-                    print("🛑 Stopping data collection")
+                    print("Stopping data collection")
                     break
         
         print("\n🎉 Data collection complete!")
@@ -177,7 +177,7 @@ class ASLDataCollector:
     
     def show_collection_summary(self):
         """Show a summary of collected data"""
-        print("\n📊 Data Collection Summary:")
+        print("\nData Collection Summary:")
         print("="*40)
         
         total_images = 0
@@ -186,23 +186,23 @@ class ASLDataCollector:
             count = len(list(letter_dir.glob("*.jpg")))
             total_images += count
             
-            status = "✅" if count >= 50 else "⚠️" if count >= 20 else "❌"
+            status = "Good" if count >= 50 else "!" if count >= 20 else "Bad"
             print(f"{status} Letter {letter}: {count} images")
         
-        print(f"\n📊 Total images: {total_images}")
-        print(f"📊 Average per letter: {total_images/len(self.letters):.1f}")
+        print(f"\nTotal images: {total_images}")
+        print(f"Average per letter: {total_images/len(self.letters):.1f}")
         
         if total_images >= 1000:
-            print("🎉 Great! You have enough data to start training!")
+            print("Great! You have enough data to start training!")
         elif total_images >= 500:
-            print("👍 Good start! More data will improve accuracy.")
+            print("Good start! More data will improve accuracy.")
         else:
-            print("⚠️  You might need more data for good results.")
+            print("You might need more data for good results.")
 
 
 # Example usage and main function
 if __name__ == "__main__":
-    print("🚀 ASL Data Collection Tool")
+    print("ASL Data Collection Tool")
     print("="*40)
     
     collector = ASLDataCollector()

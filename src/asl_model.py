@@ -78,7 +78,7 @@ class SimpleASLModel:
         # Create the model
         self.model = Model(inputs=inputs, outputs=outputs, name='Simple_ASL_Model')
         
-        print("✅ Model architecture created!")
+        print("Model architecture created!")
         print(f"Input shape: {self.input_shape}")
         print(f"Output classes: {self.num_classes}")
         
@@ -95,7 +95,7 @@ class SimpleASLModel:
         """
         
         if self.model is None:
-            print("❌ You need to build the model first!")
+            print("You need to build the model first!")
             return
         
         self.model.compile(
@@ -104,13 +104,13 @@ class SimpleASLModel:
             metrics=['accuracy']
         )
         
-        print("✅ Model compiled and ready for training!")
+        print("Model compiled and ready for training!")
         print(f"Learning rate: {learning_rate}")
     
     def get_model_summary(self):
         """Print a summary of the model architecture"""
         if self.model is None:
-            print("❌ Build the model first!")
+            print("Build the model first!")
             return
         
         print("\n📋 Model Architecture Summary:")
@@ -130,7 +130,7 @@ class SimpleASLModel:
         """
         
         if self.model is None:
-            print("❌ Build and compile the model first!")
+            print("Build and compile the model first!")
             return None, 0
         
         # Make sure image is the right shape
@@ -150,7 +150,7 @@ class SimpleASLModel:
 
 # Example usage
 if __name__ == "__main__":
-    print("🚀 Creating Simple ASL Model")
+    print("Creating Simple ASL Model")
     print("=" * 40)
     
     # Create the model
@@ -165,7 +165,7 @@ if __name__ == "__main__":
     # Show model details
     asl_model.get_model_summary()
     
-    print("\n✅ Basic model is ready!")
+    print("\n Basic model is ready!")
     print("\nNext steps:")
     print("1. Collect training data for each letter")
     print("2. Train the model on your data")

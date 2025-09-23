@@ -1,0 +1,22 @@
+{
+  "evaluation_date": "2025-08-18 11:15:44",
+  "system_overview": {
+    "total_letters": 26,
+    "static_letters": 24,
+    "motion_letters": 2,
+    "architecture": "Multi-modal CNN + LSTM"
+  },
+  "static_model_results": null,
+  "motion_model_results": null,
+  "performance_benchmark": {
+    "static": {
+      "avg_inference_ms": 37.45254039764404,
+      "fps": 26.70045848379634
+    },
+    "motion": {
+      "avg_inference_ms": 34.02362823486328,
+      "fps": 29.3913392509774
+    }
+  },
+  "model_comparison": null
+}
