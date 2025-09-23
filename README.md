@@ -2,7 +2,7 @@
 
 A high-performance American Sign Language (ASL) alphabet recognition system combining static image classification and motion-based gesture detection for complete A-Z coverage.
 
-## 🎯 Project Overview
+## Project Overview
 
 This dual-modal AI system achieves near-perfect ASL recognition by strategically combining two specialized deep learning models:
 
@@ -10,7 +10,7 @@ This dual-modal AI system achieves near-perfect ASL recognition by strategically
 - **Motion LSTM**: Achieves perfect 100% accuracy on dynamic letters J and Z
 - **Combined System**: Provides seamless real-time recognition of all 26 letters
 
-## 📊 Performance Metrics
+## Performance Metrics
 
 ### Model Performance Summary
 | Model | Accuracy | Letters | Parameters | Size |
@@ -32,7 +32,7 @@ This dual-modal AI system achieves near-perfect ASL recognition by strategically
 - **Zero Confusion**: Perfect confusion matrix with no misclassifications
 - **Efficient Architecture**: 74,929 parameters per letter vs 465,502 for static
 
-## 🏗️ Technical Architecture
+## Technical Architecture
 
 ### Static CNN Architecture
 ```
@@ -59,7 +59,7 @@ Input: 20×63 Hand Landmark Sequences
 - **Efficiency Gain**: Motion model 6x more parameter-efficient per letter
 - **Combined Size**: 129.7 MB total system
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 asl-alphabet/
@@ -88,7 +88,7 @@ asl-alphabet/
 └── README.md
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Installation
 ```bash
@@ -114,7 +114,7 @@ python src/train/train_model.py
 python src/train/train_motion.py
 ```
 
-## 🔧 Technical Implementation
+## Technical Implementation
 
 ### Data Processing
 - **Static Images**: 224×224 RGB normalization, train/test split (80/20)
@@ -131,7 +131,7 @@ python src/train/train_motion.py
 - **Motion Detection**: Automatic switching between static/motion models
 - **Smoothing**: Temporal prediction filtering for stability
 
-## 📈 Training Results Analysis
+## Training Results Analysis
 
 ### Static CNN Training
 - **Convergence**: Smooth learning curve reaching 98.3% validation accuracy
@@ -143,7 +143,7 @@ python src/train/train_motion.py
 - **Early Stopping**: Prevented overfitting at epoch 19
 - **Stability**: Consistent 100% performance across all metrics
 
-## 💻 System Requirements
+## System Requirements
 
 ```
 tensorflow>=2.15.0
@@ -154,7 +154,7 @@ matplotlib>=3.7.0
 scikit-learn>=1.3.0
 ```
 
-## 🔬 Performance Benchmarks
+## Performance Benchmarks
 
 ### Real-Time Performance
 - **Static Inference**: ~40ms per prediction
@@ -167,11 +167,11 @@ scikit-learn>=1.3.0
 **Excellent (95-99%)**: C(95%), D(90%), S(85%), U(95%), X(95%)
 
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 Built using TensorFlow, MediaPipe, and OpenCV. Training conducted on Google Colab with GPU (T4) acceleration.
 
