@@ -113,7 +113,7 @@ class SimpleASLModel:
             print("Build the model first!")
             return
         
-        print("\n📋 Model Architecture Summary:")
+        print("\n Model Architecture Summary:")
         print("=" * 50)
         self.model.summary()
     

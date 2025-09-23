@@ -125,7 +125,7 @@ class ASLDataCollector:
                 cv2.imwrite(str(filename), roi_resized)
                 
                 count += 1
-                print(f"📸 Captured image {count}/{target_images}")
+                print(f"Captured image {count}/{target_images}")
                 
                 # Brief pause so you can reposition
                 cv2.waitKey(200)
@@ -172,7 +172,7 @@ class ASLDataCollector:
                     print("Stopping data collection")
                     break
         
-        print("\n🎉 Data collection complete!")
+        print("\nData collection complete!")
         self.show_collection_summary()
     
     def show_collection_summary(self):

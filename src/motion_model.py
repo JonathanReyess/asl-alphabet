@@ -222,7 +222,7 @@ class MotionDataCollector:
             print("Could not open camera!")
             return
         
-        print(f"\n🎯 Collecting motion data for letter: {letter}")
+        print(f"\nCollecting motion data for letter: {letter}")
         print(f"Target: {num_sequences} sequences")
         
         if letter == 'J':
@@ -236,7 +236,7 @@ class MotionDataCollector:
             print("   - Trace the letter 'Z' in the air")
             print("   - Make the motion smooth and deliberate")
         
-        print("\n🎮 Controls:")
+        print("\nControls:")
         print("   - Press SPACE to start recording a sequence")
         print("   - Perform the motion while recording")
         print("   - Sequence will auto-stop after recording")

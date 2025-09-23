@@ -93,7 +93,7 @@ def check_model_parameters():
     
     # Summary
     if results:
-        print(f"\n🎯 System Summary")
+        print(f"\nSystem Summary")
         print("=" * 40)
         
         total_params = sum(r['total_params'] for r in results.values())
@@ -127,7 +127,7 @@ def check_model_parameters():
         motion_letters = 2
         total_letters = 26
         
-        print(f"\n⚡ Efficiency Metrics:")
+        print(f"\nEfficiency Metrics:")
         if 'Static CNN' in results:
             static_params = results['Static CNN']['total_params']
             static_efficiency = static_params / static_letters
@@ -141,18 +141,10 @@ def check_model_parameters():
         overall_efficiency = total_params / total_letters
         print(f"   • Overall: {overall_efficiency:,.0f} params per letter")
         
-        # Resume-ready summary
-        print(f"\n Resume Summary")
-        print("=" * 40)
-        
         if total_params >= 1_000_000:
             total_display = f"{total_params/1_000_000:.1f}M"
         else:
             total_display = f"{total_params/1_000:.0f}K"
-        
-        print(f" For your resume:")
-        print(f'   "Multi-modal deep learning system with {total_display} total parameters')
-        print(f'    achieving 98.75% accuracy on 26-letter ASL recognition"')
         
         # Architecture description
         architectures = []
@@ -171,24 +163,7 @@ def check_model_parameters():
             else:
                 motion_display = f"{motion_params/1_000:.0f}K"
             architectures.append(f"{motion_display}-parameter LSTM")
-        
-        if architectures:
-            arch_text = " and ".join(architectures)
-            print(f'   "Custom {arch_text} for real-time ASL recognition"')
-        
-        # Model size context
-        print(f"\n Model Size Context:")
-        print(f"   Your models: {total_display} parameters")
-        print(f"   ResNet-50: 25.6M parameters")
-        print(f"   EfficientNet-B0: 5.3M parameters")
-        print(f"   MobileNet: 4.2M parameters")
-        
-        if total_params < 5_000_000:
-            print(f"    Your system is VERY efficient!")
-        elif total_params < 25_000_000:
-            print(f"    Your system is reasonably sized")
-        else:
-            print(f"    Your system is comprehensive")
+
 
 if __name__ == "__main__":
     check_model_parameters()
