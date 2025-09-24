@@ -149,9 +149,8 @@ scikit-learn>=1.3.0
 - **Memory Usage**: ~130MB model footprint
 
 ### Accuracy Breakdown by Letter
-**Perfect (100%)**: A,E,F,G,H,I,K,L,M,N,O,P,Q,R,T,V,W,Y,J,Z  
-**Excellent (95-99%)**: C(95%), D(90%), S(85%), U(95%), X(95%)
-
+**Perfect (100%)**: A, E, F, G, H, I, K, L, M, N, O, P, Q, R, T, V, W, Y, J, Z   
+**Excellent (95-99%)**: C (95%), D (90%), S (85%), U (95%), X (95%)
 
 ## License
 
