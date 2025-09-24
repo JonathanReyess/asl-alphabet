@@ -17,20 +17,6 @@ This dual-modal AI system achieves near-perfect ASL recognition by strategically
 |-------|----------|---------|------------|------|
 | **Static CNN** | **98.3%** | A-Y (except J,Z) | 11.2M | 127.9 MB |
 | **Motion LSTM** | **100.0%** | J, Z | 150K | 1.8 MB |
-| **Combined** | **98.5%** | All A-Z | 11.3M | 129.7 MB |
-
-### Static Model Detailed Performance
-- **Overall Accuracy**: 98.33%
-- **Perfect Recognition**: 18/24 letters (A,E,F,G,H,I,K,L,M,N,O,P,Q,R,T,V,W,Y)
-- **Near-Perfect (95%+)**: C, D, S, U, X
-- **Macro F1-Score**: 98.3%
-
-**Top Performers**: W (100% - problem solved!), E, F, G, H (all 100%)
-
-### Motion Model Performance
-- **Perfect Classification**: 100% accuracy on J vs Z distinction
-- **Zero Confusion**: Perfect confusion matrix with no misclassifications
-- **Efficient Architecture**: 74,929 parameters per letter vs 465,502 for static
 
 ## Technical Architecture
 
@@ -52,12 +38,6 @@ Input: 20×63 Hand Landmark Sequences
 ├── Dense Layer: 32 neurons
 └── Output: 2 classes (J, Z)
 ```
-
-### System Efficiency
-
-- **Parameter Distribution**: 98.7% static, 1.3% motion
-- **Efficiency Gain**: Motion model 6x more parameter-efficient per letter
-- **Combined Size**: 129.7 MB total system
 
 ## Project Structure
 
@@ -134,11 +114,17 @@ python src/train/train_motion.py
 ## Training Results Analysis
 
 ### Static CNN Training
+
+![Static CNN Training Results](logs/model_training_history.png)
+
 - **Convergence**: Smooth learning curve reaching 98.3% validation accuracy
 - **Generalization**: Excellent train/validation alignment (no overfitting)
 - **W Recognition**: Successfully resolved from 0% to 100% accuracy
 
 ### Motion LSTM Training  
+
+![Motion LSTM Training Results](logs/motion_training_history.png)
+
 - **Rapid Convergence**: Perfect accuracy achieved by epoch 4
 - **Early Stopping**: Prevented overfitting at epoch 19
 - **Stability**: Consistent 100% performance across all metrics
