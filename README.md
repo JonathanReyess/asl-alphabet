@@ -119,7 +119,6 @@ python src/train/train_motion.py
 
 - **Convergence**: Smooth learning curve reaching 98.3% validation accuracy
 - **Generalization**: Excellent train/validation alignment (no overfitting)
-- **W Recognition**: Successfully resolved from 0% to 100% accuracy
 
 ### Motion LSTM Training  
 

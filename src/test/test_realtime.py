@@ -1,15 +1,13 @@
 """
-Step 4: Real-time ASL Recognition Testing
-========================================
+Real-time ASL Recognition Testing
+=================================
 
-This script tests your trained model with live camera input.
-You'll see your custom model recognizing A, B, C, D in real-time!
+Tests the trained ASL model with live camera input for all 24 static letters.
 """
 
 import os
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"   # disable GPU before TF import
 import tensorflow as tf
-
 
 import cv2
 import numpy as np
@@ -18,46 +16,43 @@ import time
 
 class ASLRealTimeTester:
     """
-    Real-time tester for your trained ASL model
+    Real-time tester for trained ASL model
     
-    What this does:
-    - Opens your webcam
-    - Shows live predictions from your custom model
-    - Displays confidence scores and letter predictions
-    - Runs smoothly at high FPS
+    Tests the model with live camera input for all 24 static letters
     """
     
     def __init__(self, model_path="models/asl_model_simple.keras"):
-        print("Loading your trained ASL model...")
+        print("Loading trained ASL model...")
         
-        # Load your trained model
+        # Load trained model
         if not Path(model_path).exists():
             print(f"Model not found at {model_path}")
-            print("Train your model first: python src/train_model.py")
+            print("Train your model first: python src/train/train_model.py")
             return
         
         self.model = tf.keras.models.load_model(model_path)
         print("Model loaded successfully!")
         
-        # Define the letters your model can recognize
-        # This should match what you trained on
-        self.letters = ['A', 'B', 'C', 'D']
+        # Updated to match your actual 24-letter model
+        self.letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 
+                       'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y']
         self.index_to_letter = {i: letter for i, letter in enumerate(self.letters)}
         
         # For smooth predictions
         self.prediction_history = []
-        self.history_size = 5  # Average over last 5 predictions
+        self.history_size = 5
         
         # Performance tracking
         self.fps_counter = 0
         self.fps_timer = time.time()
         self.current_fps = 0
         
-        print(f"Model ready to recognize: {self.letters}")
+        print(f"Model ready to recognize: {len(self.letters)} letters")
+        print(f"Letters: {', '.join(self.letters)}")
     
     def preprocess_image(self, frame, roi_coords):
         """
-        Preprocess the camera frame for the model
+        Preprocess camera frame for the model
         
         Args:
             frame: Camera frame
@@ -71,7 +66,7 @@ class ASLRealTimeTester:
         # Extract region of interest
         roi = frame[y:y+h, x:x+w]
         
-        # Resize to model input size
+        # Resize to model input size (224x224)
         roi_resized = cv2.resize(roi, (224, 224))
         
         # Convert BGR to RGB (OpenCV uses BGR, model expects RGB)
@@ -90,12 +85,12 @@ class ASLRealTimeTester:
         Get prediction from the model
         
         Args:
-            processed_image: Preprocessed image from preprocess_image()
+            processed_image: Preprocessed image
         
         Returns:
-            predicted_letter: The letter (A, B, C, or D)
-            confidence: How confident the model is (0-1)
-            all_probs: Probabilities for all letters
+            predicted_letter: The predicted letter
+            confidence: Confidence score (0-1)
+            top_predictions: Top 3 predictions with probabilities
         """
         
         # Get model prediction
@@ -106,38 +101,43 @@ class ASLRealTimeTester:
         predicted_letter = self.index_to_letter[predicted_index]
         confidence = predictions[0][predicted_index]
         
-        # Get all probabilities for display
-        all_probs = {self.letters[i]: predictions[0][i] for i in range(len(self.letters))}
+        # Get top 3 predictions
+        top_indices = np.argsort(predictions[0])[-3:][::-1]
+        top_predictions = [(self.letters[i], predictions[0][i]) for i in top_indices]
         
-        return predicted_letter, confidence, all_probs
+        return predicted_letter, confidence, top_predictions
     
-    def smooth_prediction(self, current_prediction):
+    def smooth_prediction(self, current_prediction, confidence):
         """
         Smooth predictions over time to reduce jitter
         
         Args:
             current_prediction: Current letter prediction
+            confidence: Current confidence score
         
         Returns:
             smoothed_prediction: Most common letter in recent history
         """
         
-        # Add current prediction to history
-        self.prediction_history.append(current_prediction)
+        # Only add to history if confidence is reasonable
+        if confidence > 0.3:
+            self.prediction_history.append(current_prediction)
         
         # Keep only recent predictions
         if len(self.prediction_history) > self.history_size:
             self.prediction_history.pop(0)
         
         # Return most common recent prediction
-        if len(self.prediction_history) >= 3:  # Need at least 3 for smoothing
+        if len(self.prediction_history) >= 3:
             # Count occurrences
-            counts = {letter: self.prediction_history.count(letter) for letter in self.letters}
+            counts = {}
+            for letter in self.prediction_history:
+                counts[letter] = counts.get(letter, 0) + 1
             return max(counts, key=counts.get)
         else:
             return current_prediction
     
-    def draw_ui(self, frame, predicted_letter, confidence, all_probs, smoothed_letter):
+    def draw_ui(self, frame, predicted_letter, confidence, top_predictions, smoothed_letter):
         """
         Draw the user interface on the frame
         
@@ -145,7 +145,7 @@ class ASLRealTimeTester:
             frame: Camera frame
             predicted_letter: Raw prediction
             confidence: Confidence score
-            all_probs: All letter probabilities
+            top_predictions: Top 3 predictions
             smoothed_letter: Smoothed prediction
         
         Returns:
@@ -160,9 +160,9 @@ class ASLRealTimeTester:
         roi_y = (height - roi_size) // 2
         
         # Color based on confidence
-        if confidence > 0.9:
+        if confidence > 0.8:
             roi_color = (0, 255, 0)  # Green - very confident
-        elif confidence > 0.7:
+        elif confidence > 0.6:
             roi_color = (0, 255, 255)  # Yellow - confident
         else:
             roi_color = (0, 0, 255)  # Red - uncertain
@@ -175,39 +175,37 @@ class ASLRealTimeTester:
         cv2.putText(frame, f"Confidence: {confidence:.1%}", (50, 100), 
                    cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
         
-        # Show all probabilities
+        # Show top 3 predictions
         y_start = 150
-        cv2.putText(frame, "All Predictions:", (50, y_start), 
+        cv2.putText(frame, "Top Predictions:", (50, y_start), 
                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
         
-        for i, letter in enumerate(self.letters):
-            prob = all_probs[letter]
-            color = (0, 255, 0) if letter == predicted_letter else (255, 255, 255)
-            
-            # Draw letter and probability
+        for i, (letter, prob) in enumerate(top_predictions):
+            color = (0, 255, 0) if i == 0 else (255, 255, 255)
             y_pos = y_start + 30 + (i * 25)
-            cv2.putText(frame, f"{letter}: {prob:.1%}", (70, y_pos), 
+            cv2.putText(frame, f"{i+1}. {letter}: {prob:.1%}", (70, y_pos), 
                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
-            
-            # Draw probability bar
-            bar_width = int(200 * prob)
-            cv2.rectangle(frame, (150, y_pos - 15), (150 + bar_width, y_pos - 5), color, -1)
-            cv2.rectangle(frame, (150, y_pos - 15), (350, y_pos - 5), (100, 100, 100), 1)
         
         # FPS display
         cv2.putText(frame, f"FPS: {self.current_fps:.1f}", (width - 150, 50), 
                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
         
+        # Model info
+        cv2.putText(frame, f"Model: 24 static letters", (50, height - 100), 
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.6, (200, 200, 200), 1)
+        cv2.putText(frame, f"Accuracy: 98.3%", (50, height - 80), 
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.6, (200, 200, 200), 1)
+        
         # Instructions
         instructions = [
             "Place hand in colored rectangle",
-            "Make clear letter signs (A, B, C, D)",
+            "Make clear letter signs (A-Y except J,Z)", 
             "Press 'q' to quit"
         ]
         
         for i, instruction in enumerate(instructions):
-            cv2.putText(frame, instruction, (50, height - 80 + (i * 20)), 
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.5, (200, 200, 200), 1)
+            cv2.putText(frame, instruction, (50, height - 50 + (i * 15)), 
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.4, (200, 200, 200), 1)
         
         return frame
     
@@ -234,8 +232,10 @@ class ASLRealTimeTester:
         print("Camera started!")
         print("Instructions:")
         print("   - Place your hand in the colored rectangle")
-        print("   - Make clear signs for letters A, B, C, or D")
-        print("   - Watch your custom model predict in real-time!")
+        print("   - Make clear signs for any of the 24 letters")
+        print("   - Green rectangle = high confidence")
+        print("   - Yellow rectangle = medium confidence") 
+        print("   - Red rectangle = low confidence")
         print("   - Press 'q' to quit")
         print("Starting real-time recognition...")
         
@@ -260,13 +260,13 @@ class ASLRealTimeTester:
                 processed_image = self.preprocess_image(frame, roi_coords)
                 
                 # Get prediction
-                predicted_letter, confidence, all_probs = self.predict_letter(processed_image)
+                predicted_letter, confidence, top_predictions = self.predict_letter(processed_image)
                 
                 # Smooth the prediction
-                smoothed_letter = self.smooth_prediction(predicted_letter)
+                smoothed_letter = self.smooth_prediction(predicted_letter, confidence)
                 
                 # Draw UI
-                frame_with_ui = self.draw_ui(frame, predicted_letter, confidence, all_probs, smoothed_letter)
+                frame_with_ui = self.draw_ui(frame, predicted_letter, confidence, top_predictions, smoothed_letter)
                 
                 # Calculate FPS
                 self.fps_counter += 1
@@ -276,7 +276,7 @@ class ASLRealTimeTester:
                     self.fps_timer = time.time()
                 
                 # Show the frame
-                cv2.imshow('ASL Real-time Recognition - Your Custom Model!', frame_with_ui)
+                cv2.imshow('ASL Real-time Recognition - 24 Letters', frame_with_ui)
                 
                 # Check for quit
                 key = cv2.waitKey(1) & 0xFF
@@ -290,7 +290,7 @@ class ASLRealTimeTester:
             cap.release()
             cv2.destroyAllWindows()
             print("Camera released and windows closed")
-            print("Thanks for testing your custom ASL model!")
+            print("Thanks for testing your ASL model!")
 
 
 def main():
@@ -300,14 +300,14 @@ def main():
     
     print("ASL Real-time Recognition Test")
     print("=" * 40)
-    print("Testing your custom trained model!")
+    print("Testing trained model on 24 static letters!")
     
     # Check if model exists
     model_path = "models/asl_model_simple.keras"
     if not Path(model_path).exists():
         print(f"No trained model found at {model_path}")
         print("Train your model first:")
-        print(" python src/train_model.py")
+        print("  python src/train/train_model.py")
         return
     
     # Create and run tester
